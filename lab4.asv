@@ -1,0 +1,145 @@
+%% Ex 1
+ImC = imread('Universe.jpg');
+ImG = rgb2gray(ImC);
+% Define different brightness thresholds
+Th1 = 0.3; % for counting all stars
+Th2 = 0.6; % for counting all mid-level and first-level stars
+Th3 = 0.8; % for counting only first-level stars of brightness in the image
+% Convert gray image to binary using each threshold
+Imbw1 = im2bw(ImG, Th1);
+Imbw2 = im2bw(ImG, Th2);
+Imbw3 = im2bw(ImG, Th3);
+% Label objects in each binary image
+[LabeledIm1, numStars1] = bwlabel(Imbw1, 4);
+[LabeledIm2, numStars2] = bwlabel(Imbw2, 4);
+[LabeledIm3, numStars3] = bwlabel(Imbw3, 4);
+% Display the results
+disp(['Number of stars with Th1 = 0.3: ', num2str(numStars1)])
+disp(['Number of stars with Th2 = 0.6: ', num2str(numStars2)])
+disp(['Number of stars with Th3 = 0.8: ', num2str(numStars3)])
+
+subplot(2,3,1); imshow(ImC); title('ImC');
+subplot(2,3,2); imshow(ImG); title('ImG');
+subplot(2,3,4); imshow(LabeledIm1); title(['Th1 = 0.3, ', num2str(numStars1), ' stars'])
+subplot(2,3,5); imshow(LabeledIm2); title(['Th2 = 0.6, ', num2str(numStars2), ' stars'])
+subplot(2,3,6); imshow(LabeledIm3); title(['Th3 = 0.8, ', num2str(numStars3), ' stars'])
+
+%% Ex2
+%Case 1: 
+% hy = fspecial('gaussian', [7 7], 1); 
+% se = strel('square', 5);
+% 
+% %Case 2:
+% hy = fspecial('sobel');
+% se = strel('disk', 8);
+% 
+% %Case 3:
+hy = fspecial('sobel');
+se = strel('disk', 20);
+
+% Step 1: Input
+rgb = imread('Flowers.jpg');
+I = rgb2gray(rgb);
+
+% Step 2: Use the Gradient Magnitude as the Segmentation Function
+hx = hy';
+Iy = imfilter(double(I), hy, 'replicate');
+Ix = imfilter(double(I), hx, 'replicate');
+gradmag = sqrt(Ix.^2 + Iy.^2); % Generate gradient distribution
+L = watershed(gradmag);
+Lrgb = label2rgb(L);
+
+% Step 3: Mark the Foreground Objects
+Io = imopen(I, se);
+Ie = imerode(I, se);
+Iobr = imreconstruct(Ie, I);
+Ioc = imclose(Io, se);
+Iobrd = imdilate(Iobr, se);
+Iobrcbr = imreconstruct(imcomplement(Iobrd), imcomplement(Iobr));
+Iobrcbr = imcomplement(Iobrcbr);
+fgm = imregionalmax(Iobrcbr);
+I2 = I;
+I2(fgm) = 255;
+se2 = strel(ones(5,5));
+fgm2 = imclose(fgm, se2);
+fgm3 = imerode(fgm2, se2);
+fgm4 = bwareaopen(fgm3, 20);
+I3 = I;
+I3(fgm4) = 255;
+
+% Step 4: Compute Background Markers
+bw = imbinarize(Iobrcbr);
+D = bwdist(bw);
+DL = watershed(D);
+bgm = DL == 0;
+
+% Step 5: Compute the Watershed Transform of the Segmentation Function.
+gradmag2 = imimposemin(gradmag, bgm | fgm4);
+L = watershed(gradmag2);
+
+% Step 6: Visualize the Result
+I4 = I;
+I4(imdilate(L == 0, ones(3, 3)) | bgm | fgm4) = 255;
+Lrgb = label2rgb(L, 'jet', 'w', 'shuffle');
+
+% Display the results
+figure
+subplot(2,3,1), imshow(rgb), title('Original Image');
+subplot(2,3,2), imshow(bgm), title('Background Markers');
+subplot(2,3,3), imshow(fgm4), title('Foreground Markers');
+subplot(2,3,4), imshow(gradmag), title('Gradient Magnitude');
+subplot(2,3,5), imshow(I4), title('Segmented Image');
+subplot(2,3,6), imshow(Lrgb), title('Watershed Lines');
+
+%% Ex 3
+% Step 1: Input
+I = imread('CoinsG.png');
+
+% Step 2: Use the Gradient Magnitude as the Segmentation Function
+hy = fspecial('sobel');
+hx = hy';
+Iy = imfilter(double(I), hy, 'replicate');
+Ix = imfilter(double(I), hx, 'replicate');
+gradmag = sqrt(Ix.^2 + Iy.^2); % Generate gradient distribution
+L = watershed(gradmag);
+Lrgb = label2rgb(L);
+
+% Step 3: Mark the Foreground Objects
+se = strel('disk', 20);
+Io = imopen(I, se);
+Ie = imerode(I, se);
+Iobr = imreconstruct(Ie, I);
+Ioc = imclose(Io, se);
+Iobrd = imdilate(Iobr, se);
+Iobrcbr = imreconstruct(imcomplement(Iobrd), imcomplement(Iobr));
+Iobrcbr = imcomplement(Iobrcbr);
+fgm = imregionalmax(Iobrcbr);
+I2 = I;
+I2(fgm) = 255;
+se2 = strel(ones(5,5));
+fgm2 = imclose(fgm, se2);
+fgm3 = imerode(fgm2, se2);
+fgm4 = bwareaopen(fgm3, 20);
+I3 = I;
+I3(fgm4) = 255;
+
+% Step 4: Compute Background Markers
+bw = imbinarize(Iobrcbr);
+D = bwdist(bw);
+DL = watershed(D);
+bgm = DL == 0;
+
+% Step 5: Compute the Watershed Transform of the Segmentation Function.
+gradmag2 = imimposemin(gradmag, bgm | fgm4);
+L = watershed(gradmag2);
+
+% Step 6: Visualize the Result
+I4 = I;
+I4(imdilate(L == 0, ones(3, 3)) | bgm | fgm4) = 255;
+Lrgb = label2rgb(L, 'jet', 'w', 'shuffle');
+figure
+
+subplot(142), imshow(bgm), title('Watershed lines');
+subplot(143), imshow(I4), title('Segmented');
+subplot(14), imshow(Lrgb), title('Composed');
+
